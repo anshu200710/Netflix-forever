@@ -8,6 +8,11 @@ const VideoPlayer = forwardRef(
         ref={ref}
         src={src}
         className={className}
+        autoPlay={props.autoPlay}
+        // muted={props.muted}
+        loop={props.loop}
+        playsInline
+        controls={props.controls}
         {...props}
       />
     );

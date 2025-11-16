@@ -5,18 +5,16 @@ import useSubdomainSlug from "../hooks/useSubdomainSlug";
 import { getPublicCreator, buildFileUrl } from "../services/api";
 import Loader from "../components/shared/Loader";
 import ErrorMessage from "../components/shared/ErrorMessage";
-import VideoPlayer from "../components/shared/VideoPlayer";
-import ProfileBubble from "../components/shared/ProfileBubble";
+import { assets } from "../assets/assets";
 
 export default function SubdomainHome() {
   const slug = useSubdomainSlug();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // If there's no subdomain → treat as main domain → redirect to /create
+  // No slug → go to create page (main domain)
   useEffect(() => {
     if (slug === null) {
       navigate("/create", { replace: true });
@@ -39,14 +37,11 @@ export default function SubdomainHome() {
       });
   }, [slug]);
 
-  if (!slug) {
-    // while redirecting
-    return null;
-  }
+  if (!slug) return null;
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-black">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader label="Loading your mini Netflix..." />
       </div>
     );
@@ -54,20 +49,19 @@ export default function SubdomainHome() {
 
   if (error || !data) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-black">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-full max-w-md px-4">
-          <ErrorMessage
-            message={error || "This page does not exist anymore."}
-          />
+          <ErrorMessage message={error || "This page does not exist anymore."} />
         </div>
       </div>
     );
   }
 
   const { creator, videos } = data;
+
   if (!videos || videos.length === 0) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-black text-white">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <p className="text-slate-300 text-center px-4">
           {creator.name} hasn&apos;t uploaded any videos yet.
         </p>
@@ -75,81 +69,48 @@ export default function SubdomainHome() {
     );
   }
 
-  const selectedVideo = videos[selectedIndex];
-  const bgSrc = buildFileUrl(selectedVideo.fileUrl);
-
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-black text-white overflow-hidden">
-      {/* Background video */}
-      <div className="absolute inset-0 -z-10">
-        <VideoPlayer
-          src={bgSrc}
-          autoPlay
-          loop
-          muted
-          className="w-full h-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-black via-black/70 to-black/40" />
-      </div>
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* top bar with Netflix logo */}
+      <header className="h-16 flex items-center px-8">
+        <img src={assets.Logonetflix} alt="Netflix" className="h-7 object-contain" />
+      </header>
 
-      <div className="relative z-10 flex flex-col min-h-[calc(100vh-4rem)] px-4 md:px-10 py-6">
-        {/* Top bar */}
-        <header className="flex items-center justify-between mb-10">
-          <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-[0.2em] text-emerald-300">
-              MINI NETFLIX
-            </span>
-            <h1 className="text-2xl md:text-3xl font-bold mt-1">
-              {creator.name}&apos;s Space
-            </h1>
-          </div>
-        </header>
+      {/* main content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4">
+        <h1 className="text-3xl md:text-5xl font-bold mb-10 text-white">
+          Who&apos;s watching?
+        </h1>
 
-        {/* Hero */}
-        <main className="flex-1 flex flex-col justify-center max-w-2xl">
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-3 drop-shadow-lg">
-            {selectedVideo.title}
-          </h2>
-          <p className="text-sm md:text-base text-slate-200 mb-6 max-w-xl">
-            A personal, Netflix-style page featuring 3 special videos from{" "}
-            <span className="font-semibold">{creator.name}</span>.
-          </p>
-
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-10 mb-12">
+          {videos.map((v) => (
             <button
-              onClick={() => navigate(`/profile/${selectedVideo._id}`)}
-              className="inline-flex items-center justify-center rounded-md bg-white text-black px-6 py-2.5 text-sm md:text-base font-semibold hover:bg-slate-100 transition shadow-lg"
+              key={v._id}
+              onClick={() => navigate(`/profile/${v._id}`)}
+              className="group flex flex-col items-center gap-3"
             >
-              ▶ Play
+              <div className="w-40 h-40 md:w-48 md:h-48 bg-slate-800 rounded-md overflow-hidden border-2 border-transparent group-hover:border-white transition-transform group-hover:scale-105">
+                {/* we use video frame as the profile image */}
+                <video
+                  src={buildFileUrl(v.fileUrl)}
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="text-sm md:text-base text-slate-300 group-hover:text-white transition">
+                {v.title || "Profile"}
+              </span>
             </button>
-            <button
-              onClick={() => setSelectedIndex((prev) => (prev + 1) % videos.length)}
-              className="inline-flex items-center justify-center rounded-md bg-slate-800/80 border border-slate-600 px-4 py-2 text-xs md:text-sm hover:bg-slate-700 transition"
-            >
-              Shuffle Highlight
-            </button>
-          </div>
-        </main>
+          ))}
+        </div>
 
-        {/* Profiles */}
-        <section className="mt-10 mb-4">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">
-            Profiles
-          </h3>
-          <div className="flex flex-wrap gap-5">
-            {videos.map((v, idx) => (
-              <ProfileBubble
-                key={v._id}
-                active={idx === selectedIndex}
-                label={v.title}
-                src={buildFileUrl(v.fileUrl)}
-                onClick={() => setSelectedIndex(idx)}
-                onPlayClick={() => navigate(`/profile/${v._id}`)}
-              />
-            ))}
-          </div>
-        </section>
-      </div>
+        <button className="mt-2 border border-slate-500 text-sm tracking-[0.2em] uppercase px-6 py-2 text-slate-200 hover:border-white hover:text-white transition">
+          Manage Profiles
+        </button>
+      </main>
     </div>
   );
 }
